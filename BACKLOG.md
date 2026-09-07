@@ -24,6 +24,12 @@ scheduled — pull items up as needed. Shipped work moves to
       untested at scale).
 - [ ] Persist scene image blobs via IndexedDB so a GM resume restores map
       art, not just scene metadata (session resume itself shipped in v0.2.0).
+- [ ] Evaluate a dedicated (likely paid) TURN provider if Open Relay
+      Project's free relay proves unreliable under real use — a second
+      connection failure was reported even with the TURN fallback in place
+      (v0.2.0). The connection log (v0.4.0) should make it possible to tell
+      whether the relay itself is unreachable/rate-limited vs. the whole
+      network blocking WebRTC outright before spending on this.
 
 ## Medium-term
 - [ ] Measurement/ruler tool snapped to grid size.
@@ -33,8 +39,10 @@ scheduled — pull items up as needed. Shipped work moves to
       targets for tokens on small screens).
 
 ## Longer-term / infra
-- [ ] Automated tests for the protocol/state reducer logic
-      (`src/lib/network/peer.js`, `src/lib/actions.js`).
+- [ ] Unit-level tests for the protocol/state reducer logic in isolation
+      (`src/lib/network/peer.js`, `src/lib/actions.js`) — the E2E Playwright
+      suite (shipped in v0.4.0, CI-gated) covers real user flows but not
+      fast, isolated reducer-logic checks.
 - [ ] Accessibility pass: keyboard navigation for the initiative tracker and
       scene list, ARIA labeling for icon-only buttons.
 - [ ] Multiple simultaneous GM support / GM handoff (currently a session has

@@ -36,6 +36,10 @@ built against.
 - **Fog of war** — GM enables a grid-aligned reveal/hide mask per scene,
   paints it with a brush or bulk reveal/hide, and sees through it while
   players only see what's been revealed (tokens included).
+- **Connection diagnostics** — a "Show connection log" panel (bottom of
+  every screen) records every WebRTC/ICE state change and connection
+  event, with a one-click copy button, so a failed connection can actually
+  be diagnosed instead of just reported as "didn't work."
 
 ## Tech Stack
 
@@ -64,16 +68,32 @@ Open two browser windows against the dev server to test host/join locally —
 one as GM ("Host a Game"), one as a player ("Join a Game") using the code
 shown in the GM window.
 
+## Testing
+
+```bash
+npx playwright install --with-deps chromium   # one-time, downloads a browser
+npm test
+```
+
+The suite (`tests/`) drives real headless-Chromium instances against a real
+WebRTC connection — no mocking — covering the full host/join/scene/token/
+initiative flow, session resume, and fog of war. `playwright.config.js`
+auto-starts the dev server, so `npm test` alone is enough day to day.
+
 ## Deploying to GitHub Pages
 
-Deployment is automated: `.github/workflows/deploy.yml` builds the app with
-`npm ci && npm run build` and publishes `dist/` to GitHub Pages via
-`actions/deploy-pages` on every push to `main` (also runnable manually via
-`workflow_dispatch`). The repo's Pages source is set to "GitHub Actions" —
-no `gh-pages` branch involved.
+Deployment is automated and test-gated: on every push to `main`,
+`.github/workflows/deploy.yml` runs the Playwright suite first — a failure
+stops the pipeline before anything builds or deploys — then builds with
+`npm run build` and publishes `dist/` to GitHub Pages via
+`actions/deploy-pages` (also runnable manually via `workflow_dispatch`). The
+repo's Pages source is set to "GitHub Actions" — no `gh-pages` branch
+involved.
 
 `vite.config.js` sets `base: './'` so the built assets resolve correctly at
-the Pages project subpath (`https://adambeltz2.github.io/Simple-VTT/`).
+the Pages project subpath (`https://adambeltz2.github.io/Simple-VTT/`), and
+injects the current `package.json` version as a build-time constant (shown
+in the footer).
 
 ## Project Structure
 
@@ -84,22 +104,56 @@ src/
   lib/
     state.js                 core game state store + connection/role stores
     actions.js                GM-only mutations (mutate + broadcast)
+    persistence.js           localStorage session-resume read/write
+    diagnostics.js           connection-log store (WebRTC/ICE event history)
     network/
       peer.js                PeerJS session hosting/joining, message handling
-      protocol.js            message type + tuning constants
+      protocol.js            message types, ICE servers, tuning constants
       imageTransfer.js       WEBP compression, chunking, reassembly
     components/
-      JoinScreen.svelte      host/join landing screen
-      GMView.svelte          GM layout (board + toolbar + scene/initiative panels)
+      JoinScreen.svelte      host/join landing screen + resume prompt
+      GMView.svelte          GM layout (board + toolbar + side panels)
       PlayerView.svelte      read-only player layout
-      BoardCanvas.svelte     canvas rendering + token drag interaction
+      BoardCanvas.svelte     canvas rendering, token drag, fog painting
       Toolbar.svelte         session code, peer count, add-token toggle
       SceneManager.svelte    map upload + scene switching
+      FogControls.svelte     fog enable/disable, brushes, bulk reveal/hide
       InitiativeTracker.svelte
       TokenModal.svelte      new-token name/color form
+      DiagnosticsPanel.svelte  connection-log viewer + copy button
+      Footer.svelte          GitHub / Buy Me a Coffee links + version
 docs/
   ARCHITECTURE.md            full technical specification
+tests/
+  core-flow.spec.js          host/join/scene/token/initiative, end-to-end
+  session-resume.spec.js     footer content, resume/forget flows
+  fog-of-war.spec.js         enable/disable, brushes, bulk actions, GM-vs-player
+  fixtures/test-map.png      small fixture image used by scene-upload tests
 ```
+
+## Browser Support
+
+Needs a modern browser with WebRTC data channels — current Chrome, Firefox,
+Safari, and Edge all work. A few things worth knowing:
+
+- **Restrictive networks.** Corporate/school firewalls and some mobile
+  carriers block WebRTC (or all non-HTTP UDP/TCP) at the network policy
+  level. No client-side fix exists for this — TURN doesn't help if the
+  relay itself is blocked too. Use the connection-log panel (bottom of the
+  screen) to check whether any relay candidate was even reachable.
+- **In-app browsers** (the WebView inside Instagram, TikTok, etc.) can have
+  buggy or restricted WebRTC support. Open the link in a real browser if a
+  connection won't establish there.
+- **Private/Incognito windows** may disable or heavily throttle
+  `localStorage`; session resume will simply have nothing to offer (this is
+  handled gracefully, not a crash).
+- **`crypto.subtle`** (used to hash scene images) requires a secure context
+  — fine on GitHub Pages (HTTPS) and `localhost`, but would silently break
+  on a plain HTTP self-host.
+- **One role per browser at a time.** Two tabs in the *same* browser both
+  trying to host (or both trying to join as the same player) will conflict,
+  since each needs its own PeerJS peer ID — use a second browser or a
+  private window instead.
 
 ## Known Limitations
 
@@ -107,9 +161,9 @@ See [`BACKLOG.md`](BACKLOG.md) for planned work. Notably: WebRTC connectivity
 falls back to a free public TURN relay (Open Relay Project) when a direct
 P2P path can't be established (e.g. very different networks like phone data
 vs. wifi), but a very restrictive network blocking both the direct path and
-the relay can still fail to connect; session resume (above) covers a page
-refresh, but there's no reconnection handling for a connection that drops
-*during* an active session.
+the relay can still fail to connect (see Browser Support above); session
+resume (above) covers a page refresh, but there's no reconnection handling
+for a connection that drops *during* an active session.
 
 ## License
 

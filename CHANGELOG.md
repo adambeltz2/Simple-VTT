@@ -8,6 +8,40 @@ version below corresponds to a git tag (`vX.Y.Z`) at the commit that shipped it.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-07
+
+### Added
+- **Connection diagnostics.** `src/lib/diagnostics.js` records every
+  connection-lifecycle and WebRTC/ICE state-change event (peer open,
+  connection open/close/error, ICE connection/gathering state, and a
+  candidate-type summary via `getStats()` when ICE fails or disconnects —
+  showing whether a relay/TURN candidate was even reachable). Surfaced via
+  a new "Show connection log" panel (`DiagnosticsPanel.svelte`) on every
+  screen, with a one-click copy button. Prompted by a real report of a
+  connection failing even with the v0.2.0 TURN fallback in place — this
+  won't fix every network, but it turns "it didn't work" into an actual
+  diagnosable log.
+- **Version number in the footer**, injected at build time from
+  `package.json` via a Vite `define` (`__APP_VERSION__`), plus proper
+  GitHub and Buy-Me-a-Coffee icons (inline SVG, no external requests).
+- **Permanent, committed Playwright test suite** (`tests/`) covering the
+  full host/join/scene/token/initiative flow, session resume, and fog of
+  war — real headless-Chromium instances over real WebRTC connections, no
+  mocking. `npm test` runs it locally (`playwright.config.js` auto-starts
+  the dev server).
+- **CI test gate.** `.github/workflows/deploy.yml` now runs the test suite
+  in its own job before building; a failure stops the pipeline before
+  anything is built or deployed, so a regression can't reach production
+  silently.
+- **Browser Support section** in the README documenting real constraints:
+  restrictive networks/firewalls, in-app WebView browsers, private-browsing
+  `localStorage` behavior, the `crypto.subtle` secure-context requirement,
+  and the one-role-per-browser limitation.
+
+### Verified
+- Full existing test suite plus the new committed Playwright specs, run
+  both locally and as the actual CI gate on this release's deploy.
+
 ## [0.3.0] - 2026-09-07
 
 ### Added

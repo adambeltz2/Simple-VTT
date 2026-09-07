@@ -4,6 +4,7 @@
   import GMView from './lib/components/GMView.svelte';
   import PlayerView from './lib/components/PlayerView.svelte';
   import Footer from './lib/components/Footer.svelte';
+  import DiagnosticsPanel from './lib/components/DiagnosticsPanel.svelte';
 </script>
 
 <div class="page">
@@ -16,6 +17,7 @@
       <JoinScreen />
     {/if}
   </main>
+  <DiagnosticsPanel />
   <Footer />
 </div>
 

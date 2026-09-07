@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import { MSG, ICE_SERVERS } from './protocol.js';
 import { chunkBlob, receiveChunk } from './imageTransfer.js';
 import { gameState, role, connectionStatus, statusMessage, peerCount, sceneImageUrls } from '../state.js';
+import { logEvent } from '../diagnostics.js';
 
 // PeerJS brokers only the SDP handshake via its free public cloud signaling
 // server; once a DataConnection opens, all traffic flows peer-to-peer over
@@ -26,6 +27,56 @@ export function generateSessionCode(length = 5) {
 
 function sendJSON(conn, msg) {
   if (conn && conn.open) conn.send(msg);
+}
+
+/**
+ * WebRTC negotiation failures give almost no detail by default. This attaches
+ * to the underlying RTCPeerConnection (PeerJS exposes it as `.peerConnection`
+ * once negotiation starts) and logs every ICE state transition, plus a
+ * candidate-type summary via getStats() when ICE actually fails/disconnects —
+ * telling us whether a relay (TURN) candidate was even reachable, as opposed
+ * to only host/srflx ones.
+ */
+function attachIceDiagnostics(conn, label) {
+  let attempts = 0;
+  const tryAttach = () => {
+    const pc = conn.peerConnection;
+    if (!pc) {
+      if (attempts++ < 20) setTimeout(tryAttach, 100);
+      return;
+    }
+    logEvent('info', `[${label}] ICE connection state: ${pc.iceConnectionState}`);
+    pc.addEventListener('iceconnectionstatechange', () => {
+      logEvent('info', `[${label}] ICE connection state changed: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        summarizeIceFailure(pc, label);
+      }
+    });
+    pc.addEventListener('icegatheringstatechange', () => {
+      logEvent('info', `[${label}] ICE gathering state: ${pc.iceGatheringState}`);
+    });
+  };
+  tryAttach();
+}
+
+async function summarizeIceFailure(pc, label) {
+  try {
+    const stats = await pc.getStats();
+    const candidateTypes = new Set();
+    stats.forEach((report) => {
+      if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+        candidateTypes.add(`${report.type}=${report.candidateType}`);
+      }
+    });
+    const summary = candidateTypes.size ? [...candidateTypes].join(', ') : 'none gathered';
+    logEvent(
+      'error',
+      `[${label}] ICE state is now ${pc.iceConnectionState}. Candidates seen: ${summary}. ` +
+        `${candidateTypes.size && ![...candidateTypes].some((c) => c.includes('relay')) ? 'No relay (TURN) candidate was found — the TURN server may be unreachable or blocked on this network.' : ''}`
+    );
+  } catch (e) {
+    logEvent('error', `[${label}] ICE failed and getStats() also failed: ${e.message}`);
+  }
 }
 
 function friendlyErrorMessage(err) {
@@ -75,9 +126,11 @@ export function hostSession(explicitCode) {
   return new Promise((resolve, reject) => {
     const code = explicitCode || generateSessionCode();
     connectionStatus.set('connecting');
+    logEvent('info', `Hosting session ${code} (ICE: STUN + Open Relay TURN)…`);
     peer = new Peer(code, { debug: 0, config: { iceServers: ICE_SERVERS } });
 
     peer.on('open', (id) => {
+      logEvent('info', `Host peer opened as ${id}`);
       role.set('gm');
       connectionStatus.set('connected');
       gameState.update((s) => ({ ...s, sessionId: id }));
@@ -85,9 +138,12 @@ export function hostSession(explicitCode) {
     });
 
     peer.on('connection', (conn) => {
+      logEvent('info', `Incoming connection from ${conn.peer}`);
       connections.set(conn.peer, conn);
+      attachIceDiagnostics(conn, conn.peer);
 
       conn.on('open', async () => {
+        logEvent('info', `Connection with ${conn.peer} open`);
         peerCount.set(connections.size);
 
         // Full snapshot first, then backfill every buffered scene image so a
@@ -101,16 +157,21 @@ export function hostSession(explicitCode) {
       });
 
       conn.on('close', () => {
+        logEvent('warn', `Connection with ${conn.peer} closed`);
         connections.delete(conn.peer);
         peerCount.set(connections.size);
       });
-      conn.on('error', () => {
+      conn.on('error', (err) => {
+        logEvent('error', `Connection with ${conn.peer} error: ${err.type || err.name || ''} ${err.message || ''}`);
         connections.delete(conn.peer);
         peerCount.set(connections.size);
       });
     });
 
+    peer.on('disconnected', () => logEvent('warn', 'Host peer disconnected from the signaling server'));
+
     peer.on('error', (err) => {
+      logEvent('error', `Host peer error: ${err.type || err.name || ''} ${err.message || ''}`);
       connectionStatus.set('error');
       statusMessage.set(friendlyErrorMessage(err));
       reject(err);
@@ -121,35 +182,45 @@ export function hostSession(explicitCode) {
 /** Join an existing session as a read-only player. */
 export function joinSession(code) {
   return new Promise((resolve, reject) => {
+    const upperCode = code.toUpperCase();
     connectionStatus.set('connecting');
+    logEvent('info', `Joining session ${upperCode} (ICE: STUN + Open Relay TURN)…`);
     peer = new Peer({ debug: 0, config: { iceServers: ICE_SERVERS } });
 
-    peer.on('open', () => {
-      const conn = peer.connect(code.toUpperCase(), { reliable: true });
+    peer.on('open', (id) => {
+      logEvent('info', `Player peer opened as ${id}, connecting to ${upperCode}…`);
+      const conn = peer.connect(upperCode, { reliable: true });
       hostConnection = conn;
+      attachIceDiagnostics(conn, 'GM');
 
       conn.on('open', () => {
+        logEvent('info', `Connection to ${upperCode} open`);
         role.set('player');
         connectionStatus.set('connected');
-        gameState.update((s) => ({ ...s, sessionId: code.toUpperCase() }));
+        gameState.update((s) => ({ ...s, sessionId: upperCode }));
         resolve();
       });
 
       conn.on('data', (msg) => handlePlayerMessage(msg));
 
       conn.on('close', () => {
+        logEvent('warn', `Connection to ${upperCode} closed`);
         connectionStatus.set('disconnected');
         statusMessage.set('Disconnected from the GM.');
       });
 
       conn.on('error', (err) => {
+        logEvent('error', `Connection to ${upperCode} error: ${err.type || err.name || ''} ${err.message || ''}`);
         connectionStatus.set('error');
         statusMessage.set(friendlyErrorMessage(err));
         reject(err);
       });
     });
 
+    peer.on('disconnected', () => logEvent('warn', 'Player peer disconnected from the signaling server'));
+
     peer.on('error', (err) => {
+      logEvent('error', `Player peer error: ${err.type || err.name || ''} ${err.message || ''}`);
       connectionStatus.set('error');
       statusMessage.set(friendlyErrorMessage(err));
       reject(err);

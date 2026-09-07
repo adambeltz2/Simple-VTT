@@ -1,18 +1,20 @@
 {
   "name": "minimalist-p2p-vtt",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Frictionless, zero-setup, zero-backend Virtual Tabletop using WebRTC P2P sync.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test"
   },
   "dependencies": {
     "peerjs": "^1.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.1",
     "svelte": "^4.2.19",
     "vite": "^5.4.0"
