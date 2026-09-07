@@ -37,3 +37,18 @@ under `[Unreleased]`.
 - Project documentation: this changelog, `BACKLOG.md`, `README.md`, and an
   updated `CLAUDE.md` reflecting the implementation decisions actually made.
 - Relocated the original architecture spec to `docs/ARCHITECTURE.md`.
+
+### Fixed
+- Removed an unused CSS selector in `SceneManager.svelte` and resolved
+  Svelte a11y lint warnings on the `TokenModal` backdrop (proper ARIA
+  roles, Escape-to-cancel keyboard support).
+
+### Verified
+- `npm run build` produces a clean production bundle with no compiler
+  warnings.
+- End-to-end smoke test (headless Chromium, two independent browser
+  contexts acting as GM and player) confirmed over a real WebRTC
+  connection: hosting/joining by code, full state sync on join, scene
+  image upload/compression/chunked P2P transfer, token add and drag-move
+  sync, and initiative tracker add/reorder/turn-advance sync — all with
+  zero console errors on either side.
