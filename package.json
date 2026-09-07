@@ -1,6 +1,6 @@
 {
   "name": "minimalist-p2p-vtt",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Frictionless, zero-setup, zero-backend Virtual Tabletop using WebRTC P2P sync.",

@@ -5,15 +5,11 @@ scheduled — pull items up as needed. Shipped work moves to
 [`CHANGELOG.md`](CHANGELOG.md) instead of staying here.
 
 ## Up next (in this order)
-- [ ] **1. Fog of war layer.** GM-controlled reveal/hide regions per
-      scene — a second canvas layer, GM paints/erases a mask, mask state
-      syncs as a delta payload like tokens do. Players see the masked
-      view; GM sees the full map with the mask overlaid translucently.
-- [ ] **2. Sample-scene onboarding tutorial.** A "Load Sample Scene"
+- [ ] **1. Sample-scene onboarding tutorial.** A "Load Sample Scene"
       button (GM, shown when there are no scenes yet) that seeds a
       canvas-generated placeholder map plus a few sample tokens, so a new
-      GM can see how scenes/tokens/initiative work without needing their
-      own map first. Pairs well with a short first-run walkthrough
+      GM can see how scenes/tokens/initiative/fog work without needing
+      their own map first. Pairs well with a short first-run walkthrough
       pointing at the toolbar/scene manager/initiative tracker.
 
 ## Near-term

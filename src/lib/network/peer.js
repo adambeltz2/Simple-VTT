@@ -204,6 +204,23 @@ function handlePlayerMessage(msg) {
     case MSG.TURN_ADVANCE:
       gameState.update((s) => ({ ...s, activeTurnIndex: msg.index }));
       break;
+
+    case MSG.FOG_SET:
+      gameState.update((s) => ({
+        ...s,
+        scenes: { ...s.scenes, [msg.sceneId]: { ...s.scenes[msg.sceneId], fog: msg.fog } }
+      }));
+      break;
+
+    case MSG.FOG_CELL:
+      gameState.update((s) => {
+        const scene = s.scenes[msg.sceneId];
+        if (!scene?.fog) return s;
+        const revealed = scene.fog.revealed.slice();
+        revealed[msg.index] = msg.revealed;
+        return { ...s, scenes: { ...s.scenes, [msg.sceneId]: { ...scene, fog: { ...scene.fog, revealed } } } };
+      });
+      break;
   }
 }
 

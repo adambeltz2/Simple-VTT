@@ -1,10 +1,11 @@
 <script>
   import { onMount } from 'svelte';
   import { gameState, sceneImageUrls } from '../state.js';
-  import { moveToken } from '../actions.js';
+  import { moveToken, setFogCell } from '../actions.js';
 
   export let interactive = false;
   export let addTokenMode = false;
+  export let fogBrush = null; // null | 'reveal' | 'hide'
   export let onCanvasClick = () => {};
 
   let canvas;
@@ -12,6 +13,7 @@
   const images = {}; // objectUrl -> HTMLImageElement cache
   let draggingId = null;
   let dragOffset = { x: 0, y: 0 };
+  let painting = false;
 
   $: activeScene = $gameState.scenes[$gameState.activeSceneId];
   $: activeSceneUrl = $gameState.activeSceneId ? $sceneImageUrls[$gameState.activeSceneId] : null;
@@ -74,6 +76,20 @@
       ctx.textAlign = 'center';
       ctx.fillText(token.name, token.x, token.y + radius + 14);
     }
+
+    const fog = activeScene?.fog;
+    if (fog) {
+      // GM sees a translucent tint (so they can still run the game); players
+      // get a fully opaque mask that also hides any tokens underneath.
+      ctx.fillStyle = interactive ? 'rgba(0, 0, 0, 0.45)' : '#000';
+      for (let row = 0; row < fog.rows; row++) {
+        for (let col = 0; col < fog.cols; col++) {
+          if (!fog.revealed[row * fog.cols + col]) {
+            ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
+          }
+        }
+      }
+    }
   }
 
   function toCanvasCoords(evt) {
@@ -95,9 +111,33 @@
     return null;
   }
 
+  function fogCellAt(pos) {
+    const fog = activeScene?.fog;
+    if (!fog) return null;
+    const gridSize = activeScene?.gridSize || 50;
+    const col = Math.floor(pos.x / gridSize);
+    const row = Math.floor(pos.y / gridSize);
+    if (col < 0 || row < 0 || col >= fog.cols || row >= fog.rows) return null;
+    return row * fog.cols + col;
+  }
+
+  function paintFogAt(pos) {
+    const index = fogCellAt(pos);
+    if (index === null) return;
+    setFogCell($gameState.activeSceneId, index, fogBrush === 'reveal');
+  }
+
   function handlePointerDown(evt) {
     if (!interactive) return;
     const pos = toCanvasCoords(evt);
+
+    if (fogBrush) {
+      painting = true;
+      canvas.setPointerCapture(evt.pointerId);
+      paintFogAt(pos);
+      return;
+    }
+
     const hitId = hitTestToken(pos);
 
     if (addTokenMode && !hitId) {
@@ -114,12 +154,23 @@
   }
 
   function handlePointerMove(evt) {
-    if (!draggingId) return;
     const pos = toCanvasCoords(evt);
+
+    if (painting) {
+      paintFogAt(pos);
+      return;
+    }
+
+    if (!draggingId) return;
     moveToken(draggingId, pos.x - dragOffset.x, pos.y - dragOffset.y);
   }
 
   function handlePointerUp(evt) {
+    if (painting) {
+      painting = false;
+      return;
+    }
+
     if (!draggingId) return;
     const pos = toCanvasCoords(evt);
     moveToken(draggingId, pos.x - dragOffset.x, pos.y - dragOffset.y, { force: true });
@@ -138,6 +189,7 @@
     width={canvasWidth}
     height={canvasHeight}
     class:interactive
+    class:brushing={!!fogBrush}
     on:pointerdown={handlePointerDown}
     on:pointermove={handlePointerMove}
     on:pointerup={handlePointerUp}
@@ -163,6 +215,9 @@
   }
   canvas.interactive {
     cursor: grab;
+  }
+  canvas.brushing {
+    cursor: crosshair;
   }
   .empty-hint {
     position: absolute;

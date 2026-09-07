@@ -33,6 +33,9 @@ built against.
 - **Session resume** — accidentally refresh the tab? Both GM and players get
   a "Resume session" prompt to pick back up where they left off (GM state
   minus scene images, which aren't persisted — see Known Limitations).
+- **Fog of war** — GM enables a grid-aligned reveal/hide mask per scene,
+  paints it with a brush or bulk reveal/hide, and sees through it while
+  players only see what's been revealed (tokens included).
 
 ## Tech Stack
 

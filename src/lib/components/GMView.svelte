@@ -2,13 +2,19 @@
   import BoardCanvas from './BoardCanvas.svelte';
   import Toolbar from './Toolbar.svelte';
   import SceneManager from './SceneManager.svelte';
+  import FogControls from './FogControls.svelte';
   import InitiativeTracker from './InitiativeTracker.svelte';
   import TokenModal from './TokenModal.svelte';
   import { gameState } from '../state.js';
   import { addToken } from '../actions.js';
 
-  let addTokenMode = false;
+  // A single active tool keeps token-placement and fog-painting mutually
+  // exclusive without extra bookkeeping.
+  let tool = 'move'; // 'move' | 'addToken' | 'fogReveal' | 'fogHide'
   let pendingPos = null;
+
+  $: addTokenMode = tool === 'addToken';
+  $: fogBrush = tool === 'fogReveal' ? 'reveal' : tool === 'fogHide' ? 'hide' : null;
 
   function handleCanvasClick(pos) {
     pendingPos = pos;
@@ -17,18 +23,19 @@
   function confirmToken(e) {
     addToken({ ...e.detail, sceneId: $gameState.activeSceneId });
     pendingPos = null;
-    addTokenMode = false;
+    tool = 'move';
   }
 </script>
 
 <div class="gm-view">
-  <Toolbar {addTokenMode} onToggleAddToken={() => (addTokenMode = !addTokenMode)} />
+  <Toolbar {addTokenMode} onToggleAddToken={() => (tool = tool === 'addToken' ? 'move' : 'addToken')} />
   <div class="layout">
     <div class="board-col">
-      <BoardCanvas interactive={true} {addTokenMode} onCanvasClick={handleCanvasClick} />
+      <BoardCanvas interactive={true} {addTokenMode} {fogBrush} onCanvasClick={handleCanvasClick} />
     </div>
     <div class="side-col">
       <SceneManager />
+      <FogControls {tool} onSetTool={(t) => (tool = t)} />
       <InitiativeTracker editable={true} />
     </div>
   </div>

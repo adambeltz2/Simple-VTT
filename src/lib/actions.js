@@ -86,3 +86,58 @@ export function advanceTurn() {
   gameState.update((st) => ({ ...st, activeTurnIndex: index }));
   broadcast({ type: MSG.TURN_ADVANCE, index });
 }
+
+/**
+ * Enabling creates a fog grid (one cell per grid square, all hidden by
+ * default) for the scene; disabling clears it back to fully visible.
+ * Fog lives on the scene object itself, so it rides along with the existing
+ * STATE_SYNC / SCENE_ADD sync path and session-resume persistence for free.
+ */
+export function setFogEnabled(sceneId, enabled) {
+  const scene = get(gameState).scenes[sceneId];
+  if (!scene) return;
+
+  let fog = null;
+  if (enabled) {
+    const cols = Math.max(1, Math.ceil(scene.width / scene.gridSize));
+    const rows = Math.max(1, Math.ceil(scene.height / scene.gridSize));
+    fog = { cols, rows, revealed: new Array(cols * rows).fill(false) };
+  }
+
+  gameState.update((s) => ({
+    ...s,
+    scenes: { ...s.scenes, [sceneId]: { ...s.scenes[sceneId], fog } }
+  }));
+  broadcast({ type: MSG.FOG_SET, sceneId, fog });
+}
+
+/** Toggles a single grid cell; sent as a small delta rather than the whole mask. */
+export function setFogCell(sceneId, index, revealed) {
+  const scene = get(gameState).scenes[sceneId];
+  if (!scene?.fog || scene.fog.revealed[index] === revealed) return;
+
+  const nextRevealed = scene.fog.revealed.slice();
+  nextRevealed[index] = revealed;
+
+  gameState.update((s) => ({
+    ...s,
+    scenes: {
+      ...s.scenes,
+      [sceneId]: { ...s.scenes[sceneId], fog: { ...s.scenes[sceneId].fog, revealed: nextRevealed } }
+    }
+  }));
+  broadcast({ type: MSG.FOG_CELL, sceneId, index, revealed });
+}
+
+/** Bulk "Reveal All" / "Hide All" for the active scene's fog. */
+export function setAllFog(sceneId, revealed) {
+  const scene = get(gameState).scenes[sceneId];
+  if (!scene?.fog) return;
+
+  const nextFog = { ...scene.fog, revealed: new Array(scene.fog.cols * scene.fog.rows).fill(revealed) };
+  gameState.update((s) => ({
+    ...s,
+    scenes: { ...s.scenes, [sceneId]: { ...s.scenes[sceneId], fog: nextFog } }
+  }));
+  broadcast({ type: MSG.FOG_SET, sceneId, fog: nextFog });
+}

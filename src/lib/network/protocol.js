@@ -8,7 +8,9 @@ export const MSG = {
   SCENE_IMAGE_CHUNK: 'SCENE_IMAGE_CHUNK',
   SCENE_CHANGE: 'SCENE_CHANGE',
   INITIATIVE_UPDATE: 'INITIATIVE_UPDATE',
-  TURN_ADVANCE: 'TURN_ADVANCE'
+  TURN_ADVANCE: 'TURN_ADVANCE',
+  FOG_SET: 'FOG_SET',
+  FOG_CELL: 'FOG_CELL'
 };
 
 // Per CLAUDE.md constraint #4: chunk map images to avoid channel buffer overflow.

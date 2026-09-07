@@ -8,6 +8,33 @@ version below corresponds to a git tag (`vX.Y.Z`) at the commit that shipped it.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-07
+
+### Added
+- **Fog of war.** Per-scene, grid-aligned reveal/hide mask, GM-controlled:
+  - Toggle "Enabled" in the new Fog of War panel to create the mask for the
+    active scene (all cells hidden by default).
+  - "Reveal Brush" / "Hide Brush" paint tools (click-and-drag) toggle
+    individual grid cells; "Reveal All" / "Hide All" bulk-set the whole
+    scene.
+  - GM sees a translucent tint over hidden cells (can still see the map and
+    tokens); players see hidden cells as fully opaque, which also hides any
+    tokens underneath.
+  - Two new small delta payloads (`FOG_CELL` per-cell, `FOG_SET` for
+    enable/disable/bulk) follow the same broadcast pattern as
+    `TOKEN_MOVE`/`SCENE_CHANGE`. Fog data lives on the scene object, so it
+    rides the existing `STATE_SYNC` and session-resume persistence for free
+    — no new sync path needed.
+  - `src/lib/components/FogControls.svelte` (new),
+    `BoardCanvas.svelte` (paint interaction + rendering),
+    `actions.js` (`setFogEnabled`, `setFogCell`, `setAllFog`).
+
+### Verified
+- New fog-of-war smoke test (8 checks: enable/disable, brush painting,
+  bulk reveal/hide, GM-vs-player rendering difference, sync to a connected
+  player) plus full regression of the v0.1.0/v0.2.0 test suites — all
+  passing with zero console errors, locally and on the live deployment.
+
 ## [0.2.0] - 2026-09-07
 
 ### Added
