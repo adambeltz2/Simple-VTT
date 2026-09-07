@@ -12,10 +12,19 @@
     if (!name.trim()) return;
     dispatch('confirm', { name: name.trim(), color, x, y });
   }
+
+  function handleKeydown(e) {
+    if (e.key === 'Escape') dispatch('cancel');
+  }
 </script>
 
-<div class="backdrop" on:click={() => dispatch('cancel')}>
-  <div class="modal" on:click|stopPropagation>
+<svelte:window on:keydown={handleKeydown} />
+
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="backdrop" role="presentation" on:click={() => dispatch('cancel')}>
+  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <div class="modal" role="dialog" aria-modal="true" aria-label="New token" on:click|stopPropagation>
     <h3>New Token</h3>
     <label>
       Name

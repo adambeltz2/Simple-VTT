@@ -75,7 +75,6 @@
     flex-wrap: wrap;
     gap: 0.4rem;
   }
-  .upload input[type='text'],
   .upload input:not([type]) {
     flex: 1;
     min-width: 8rem;
