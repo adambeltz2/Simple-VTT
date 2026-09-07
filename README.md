@@ -1,6 +1,10 @@
 # Minimalist P2P VTT
 
-**Live:** https://adambeltz2.github.io/Simple-VTT/
+**Play now:** https://adambeltz2.github.io/Simple-VTT/ — open it in a
+browser, no install, no account, no Node/npm required. One person clicks
+"Host a Game," everyone else opens the same link and clicks "Join a Game"
+with the code shown. (Node/npm are only needed if you want to modify the
+source — see [Local Development](#local-development) below.)
 
 A frictionless, zero-setup Virtual Tabletop. No accounts, no installs, no
 backend server, and no subscription — the GM's browser hosts the session and
@@ -37,9 +41,11 @@ built against.
 - Ships as static HTML/JS/CSS — no backend, suitable for GitHub Pages or any
   static host.
 
-## Getting Started
+## Local Development
 
-Requires [Node.js](https://nodejs.org/) (LTS) and npm.
+Only needed if you're modifying the code — playing the game requires none
+of this (see the live link above). Requires [Node.js](https://nodejs.org/)
+(LTS) and npm.
 
 ```bash
 npm install
