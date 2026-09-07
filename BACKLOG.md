@@ -28,8 +28,6 @@ scheduled — pull items up as needed.
 ## Longer-term / infra
 - [ ] Automated tests for the protocol/state reducer logic
       (`src/lib/network/peer.js`, `src/lib/actions.js`).
-- [ ] GitHub Actions workflow to build and deploy `dist/` to GitHub Pages on
-      push to main (project has no CI yet — see README deployment section).
 - [ ] Accessibility pass: keyboard navigation for the initiative tracker and
       scene list, ARIA labeling for icon-only buttons.
 - [ ] Multiple simultaneous GM support / GM handoff (currently a session has

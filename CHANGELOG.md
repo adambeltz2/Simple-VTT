@@ -3,12 +3,17 @@
 All notable changes to this project are documented in this file. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This project has not yet been deployed or tagged — everything so far lives
-under `[Unreleased]`.
+This project has not yet been tagged/versioned — everything so far lives
+under `[Unreleased]`. It is, however, continuously deployed to GitHub Pages
+from `main` (see below).
 
 ## [Unreleased]
 
 ### Added
+- GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds the
+  app and deploys `dist/` to GitHub Pages via `actions/deploy-pages` on
+  every push to `main`. Pages is configured with source "GitHub Actions"
+  (no `gh-pages` branch). Live at https://adambeltz2.github.io/Simple-VTT/.
 - Initial project scaffold: Vite + Svelte 4, static build config (`base: './'`
   for portable GitHub Pages deployment).
 - Core game state store (`src/lib/state.js`) matching the JSON schema defined

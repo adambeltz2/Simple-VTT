@@ -1,5 +1,7 @@
 # Minimalist P2P VTT
 
+**Live:** https://adambeltz2.github.io/Simple-VTT/
+
 A frictionless, zero-setup Virtual Tabletop. No accounts, no installs, no
 backend server, and no subscription — the GM's browser hosts the session and
 players join with a short code, with all game state synced directly
@@ -52,19 +54,14 @@ shown in the GM window.
 
 ## Deploying to GitHub Pages
 
-This project has not yet been pushed to GitHub or deployed anywhere — the
-steps below are for when you're ready:
+Deployment is automated: `.github/workflows/deploy.yml` builds the app with
+`npm ci && npm run build` and publishes `dist/` to GitHub Pages via
+`actions/deploy-pages` on every push to `main` (also runnable manually via
+`workflow_dispatch`). The repo's Pages source is set to "GitHub Actions" —
+no `gh-pages` branch involved.
 
-1. `git init && git add . && git commit -m "Initial commit"`
-2. Create a GitHub repository and push this branch to it.
-3. `npm run build` to produce `dist/`.
-4. Deploy `dist/` to the `gh-pages` branch (e.g. via the `gh-pages` npm
-   package or a GitHub Actions workflow) or point GitHub Pages at `dist/`
-   using your CI of choice.
-
-`vite.config.js` already sets `base: './'` so the built assets resolve
-correctly whether the app is served from a domain root or a Pages project
-subpath (`https://<user>.github.io/<repo>/`).
+`vite.config.js` sets `base: './'` so the built assets resolve correctly at
+the Pages project subpath (`https://adambeltz2.github.io/Simple-VTT/`).
 
 ## Project Structure
 
