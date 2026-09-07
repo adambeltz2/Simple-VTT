@@ -30,6 +30,9 @@ built against.
   to ~20fps before being broadcast, with clients rendering the live position.
 - **Initiative tracker** — GM adds/removes/reorders combatants and advances
   turns; players see a live, read-only view with the active turn highlighted.
+- **Session resume** — accidentally refresh the tab? Both GM and players get
+  a "Resume session" prompt to pick back up where they left off (GM state
+  minus scene images, which aren't persisted — see Known Limitations).
 
 ## Tech Stack
 
@@ -97,10 +100,13 @@ docs/
 
 ## Known Limitations
 
-See [`BACKLOG.md`](BACKLOG.md) for planned work. Notably: no TURN server is
-configured (falls back to PeerJS's default cloud broker and public STUN),
-so connections behind strict/symmetric NATs may fail; there's no
-reconnection-after-drop handling yet.
+See [`BACKLOG.md`](BACKLOG.md) for planned work. Notably: WebRTC connectivity
+falls back to a free public TURN relay (Open Relay Project) when a direct
+P2P path can't be established (e.g. very different networks like phone data
+vs. wifi), but a very restrictive network blocking both the direct path and
+the relay can still fail to connect; session resume (above) covers a page
+refresh, but there's no reconnection handling for a connection that drops
+*during* an active session.
 
 ## License
 

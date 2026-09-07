@@ -3,11 +3,47 @@
 All notable changes to this project are documented in this file. Format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This project has not yet been tagged/versioned — everything so far lives
-under `[Unreleased]`. It is, however, continuously deployed to GitHub Pages
-from `main` (see below).
+The project is continuously deployed to GitHub Pages from `main`; each
+version below corresponds to a git tag (`vX.Y.Z`) at the commit that shipped it.
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-09-07
+
+### Added
+- **Session resume.** Refreshing the tab no longer loses the session: the
+  role and session code (plus, for the GM, the full game-state JSON) are
+  persisted to `localStorage` and offered back as a "Resume session ABCDE"
+  prompt on next load. GM resume re-hosts under the same join code; players
+  rejoin normally and get a fresh `STATE_SYNC`. Scene *images* are not
+  restored (binary blobs aren't persisted) — only scene metadata — so a
+  resumed GM will need to re-upload map art. (`src/lib/persistence.js`,
+  `JoinScreen.svelte`, `hostSession(explicitCode)` in `peer.js`)
+- **TURN server fallback.** Added Open Relay Project's free public TURN
+  servers alongside Google STUN in the WebRTC ICE configuration
+  (`ICE_SERVERS` in `protocol.js`), used by both `hostSession` and
+  `joinSession`.
+- **Friendlier connection error messages** for the known PeerJS/WebRTC
+  failure modes (`unavailable-id`, `webrtc`/negotiation failure,
+  `peer-unavailable`) instead of raw error text.
+- **Footer** with links to the GitHub repo and a Buy Me a Coffee page,
+  shown on every screen (`Footer.svelte`).
+
+### Fixed
+- WebRTC connections failing between peers on very different networks (e.g.
+  a phone on cellular data hosting, a desktop on wifi joining), surfaced as
+  "Negotiation of connection to `<code>` failed." STUN alone can't traverse
+  symmetric/carrier-grade NATs; the TURN fallback above resolves the common
+  case. (Reported against a live session; a residual failure is still
+  possible if both the direct path and the relay are blocked by a very
+  restrictive network — see README's Known Limitations.)
+
+### Verified
+- Full regression + new resume/footer smoke tests (headless Chromium),
+  including simulated reload-and-resume, all passing with zero console
+  errors, both locally and against the live GitHub Pages deployment.
+
+## [0.1.0] - 2026-09-07
 
 ### Added
 - GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds the

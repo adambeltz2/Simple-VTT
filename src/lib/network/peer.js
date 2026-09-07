@@ -1,6 +1,6 @@
 import { Peer } from 'peerjs';
 import { get } from 'svelte/store';
-import { MSG } from './protocol.js';
+import { MSG, ICE_SERVERS } from './protocol.js';
 import { chunkBlob, receiveChunk } from './imageTransfer.js';
 import { gameState, role, connectionStatus, statusMessage, peerCount, sceneImageUrls } from '../state.js';
 
@@ -28,6 +28,19 @@ function sendJSON(conn, msg) {
   if (conn && conn.open) conn.send(msg);
 }
 
+function friendlyErrorMessage(err) {
+  if (err.type === 'unavailable-id') {
+    return 'That session code is still active from before. Wait a few seconds and try Resume again.';
+  }
+  if (err.type === 'webrtc' || /negotiation/i.test(err.message || '')) {
+    return "Couldn't establish a direct connection — this can happen between very different networks (e.g. phone data vs. wifi) if both a direct route and the relay fallback are blocked. Try again, or connect both devices to the same wifi.";
+  }
+  if (err.type === 'peer-unavailable') {
+    return 'No session found with that code. Double check it and try again.';
+  }
+  return err.message || 'Connection error.';
+}
+
 /** GM-only: send a message to every connected player. */
 export function broadcast(msg) {
   for (const conn of connections.values()) sendJSON(conn, msg);
@@ -53,12 +66,16 @@ async function sendSceneImage(sceneId, conn) {
   }
 }
 
-/** Become the GM: opens a PeerJS host peer under a short join code. */
-export function hostSession() {
+/**
+ * Become the GM: opens a PeerJS host peer under a short join code.
+ * Pass an explicit code to re-host an existing session (e.g. resuming after
+ * a refresh) instead of generating a fresh one.
+ */
+export function hostSession(explicitCode) {
   return new Promise((resolve, reject) => {
-    const code = generateSessionCode();
+    const code = explicitCode || generateSessionCode();
     connectionStatus.set('connecting');
-    peer = new Peer(code, { debug: 0 });
+    peer = new Peer(code, { debug: 0, config: { iceServers: ICE_SERVERS } });
 
     peer.on('open', (id) => {
       role.set('gm');
@@ -95,7 +112,7 @@ export function hostSession() {
 
     peer.on('error', (err) => {
       connectionStatus.set('error');
-      statusMessage.set(err.message || 'Connection error.');
+      statusMessage.set(friendlyErrorMessage(err));
       reject(err);
     });
   });
@@ -105,7 +122,7 @@ export function hostSession() {
 export function joinSession(code) {
   return new Promise((resolve, reject) => {
     connectionStatus.set('connecting');
-    peer = new Peer({ debug: 0 });
+    peer = new Peer({ debug: 0, config: { iceServers: ICE_SERVERS } });
 
     peer.on('open', () => {
       const conn = peer.connect(code.toUpperCase(), { reliable: true });
@@ -127,14 +144,14 @@ export function joinSession(code) {
 
       conn.on('error', (err) => {
         connectionStatus.set('error');
-        statusMessage.set(err.message || 'Connection error.');
+        statusMessage.set(friendlyErrorMessage(err));
         reject(err);
       });
     });
 
     peer.on('error', (err) => {
       connectionStatus.set('error');
-      statusMessage.set('Could not reach that session. Check the code and try again.');
+      statusMessage.set(friendlyErrorMessage(err));
       reject(err);
     });
   });

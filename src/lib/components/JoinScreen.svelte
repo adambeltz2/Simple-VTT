@@ -1,8 +1,15 @@
 <script>
+  import { onMount } from 'svelte';
   import { hostSession, joinSession } from '../network/peer.js';
-  import { connectionStatus, statusMessage } from '../state.js';
+  import { connectionStatus, statusMessage, gameState } from '../state.js';
+  import { loadSession, clearSession } from '../persistence.js';
 
   let code = '';
+  let resumable = null;
+
+  onMount(() => {
+    resumable = loadSession();
+  });
 
   async function handleHost() {
     try {
@@ -20,24 +27,59 @@
       // connectionStatus/statusMessage already reflect the failure.
     }
   }
+
+  async function handleResume() {
+    if (!resumable) return;
+    try {
+      if (resumable.role === 'gm') {
+        await hostSession(resumable.sessionId);
+        if (resumable.gameState) gameState.set(resumable.gameState);
+      } else {
+        await joinSession(resumable.sessionId);
+      }
+    } catch (e) {
+      // Leave the resume panel up so the user can retry (e.g. code still
+      // held by the old peer for a few seconds) or give up via Forget.
+    }
+  }
+
+  function handleForget() {
+    clearSession();
+    resumable = null;
+  }
 </script>
 
 <div class="join-screen">
   <h1>Minimalist P2P VTT</h1>
   <p class="tagline">No accounts. No installs. Just a code.</p>
 
-  <div class="panel">
-    <button class="primary" on:click={handleHost} disabled={$connectionStatus === 'connecting'}>
-      Host a Game
-    </button>
+  {#if resumable}
+    <div class="panel resume-panel">
+      <p class="resume-text">
+        Resume session <strong>{resumable.sessionId}</strong> as
+        {resumable.role === 'gm' ? 'GM' : 'a player'}?
+      </p>
+      <div class="resume-actions">
+        <button class="primary" on:click={handleResume} disabled={$connectionStatus === 'connecting'}>
+          Resume
+        </button>
+        <button on:click={handleForget}>Start Fresh</button>
+      </div>
+    </div>
+  {:else}
+    <div class="panel">
+      <button class="primary" on:click={handleHost} disabled={$connectionStatus === 'connecting'}>
+        Host a Game
+      </button>
 
-    <div class="divider">or</div>
+      <div class="divider">or</div>
 
-    <form on:submit|preventDefault={handleJoin}>
-      <input placeholder="ENTER CODE" bind:value={code} maxlength="6" style="text-transform: uppercase;" />
-      <button type="submit" disabled={$connectionStatus === 'connecting'}>Join a Game</button>
-    </form>
-  </div>
+      <form on:submit|preventDefault={handleJoin}>
+        <input placeholder="ENTER CODE" bind:value={code} maxlength="6" style="text-transform: uppercase;" />
+        <button type="submit" disabled={$connectionStatus === 'connecting'}>Join a Game</button>
+      </form>
+    </div>
+  {/if}
 
   {#if $connectionStatus === 'connecting'}
     <p class="hint">Connecting…</p>
@@ -49,7 +91,7 @@
 
 <style>
   .join-screen {
-    min-height: 100vh;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
