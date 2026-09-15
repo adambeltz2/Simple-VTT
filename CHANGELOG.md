@@ -8,6 +8,20 @@ version below corresponds to a git tag (`vX.Y.Z`) at the commit that shipped it.
 
 ## [Unreleased]
 
+### Added
+- **Cloudflare TURN support.** `cloudflare-turn-worker/` is a small Worker
+  that mints short-lived Cloudflare TURN credentials on request (the API
+  secret to do so can't live in the static frontend bundle, per `CLAUDE.md`'s
+  "Zero Backend" rule — this Worker is the one narrow exception, and holds no
+  game state). The client (`fetchIceServers()` in
+  `src/lib/network/protocol.js`, used by `hostSession`/`joinSession` in
+  `peer.js`) fetches fresh credentials from it via `VITE_TURN_WORKER_URL` at
+  connect time, and falls back to the existing free Open Relay Project TURN
+  servers if that URL isn't configured or the request fails. See
+  `cloudflare-turn-worker/README.md` for one-time Cloudflare setup; the CI
+  deploy workflow forwards `vars.VITE_TURN_WORKER_URL` into the production
+  build.
+
 ## [0.4.0] - 2026-09-07
 
 ### Added

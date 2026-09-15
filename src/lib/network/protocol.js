@@ -21,11 +21,10 @@ export const TOKEN_MOVE_THROTTLE_MS = 50;
 
 // STUN-only ICE can't traverse symmetric/carrier-grade NATs (e.g. a phone on
 // cellular connecting to a desktop on wifi), which surfaces to users as a
-// WebRTC "negotiation failed" error. Open Relay Project's TURN servers are a
-// free, no-signup public relay used widely for exactly this fallback case.
-// If this project ever needs guaranteed reliability, swap in a dedicated
-// TURN provider (Twilio, Metered, Cloudflare) here.
-export const ICE_SERVERS = [
+// WebRTC "negotiation failed" error. This is the fallback used whenever the
+// dedicated Cloudflare TURN worker (see fetchIceServers below) is unreachable
+// or not configured: Open Relay Project's free, no-signup public relay.
+export const FALLBACK_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   {
     urls: [
@@ -37,3 +36,29 @@ export const ICE_SERVERS = [
     credential: 'openrelayproject'
   }
 ];
+
+// Cloudflare's TURN service issues short-lived credentials that must be
+// minted server-side (the API token that authorizes minting can't live in a
+// static bundle). `cloudflare-turn-worker/` is a small Worker that holds that
+// secret and returns nothing but a fresh { iceServers } pair — set its
+// deployed URL here via VITE_TURN_WORKER_URL (see cloudflare-turn-worker/README.md).
+const TURN_WORKER_URL = import.meta.env.VITE_TURN_WORKER_URL;
+
+/**
+ * Fetches fresh TURN credentials from the Cloudflare Worker. Falls back to
+ * the static Open Relay servers (still STUN + best-effort TURN) if the
+ * worker URL isn't configured or the request fails for any reason — a
+ * missing/flaky TURN provider should degrade connectivity, not crash the app.
+ */
+export async function fetchIceServers() {
+  if (!TURN_WORKER_URL) return FALLBACK_ICE_SERVERS;
+  try {
+    const resp = await fetch(TURN_WORKER_URL);
+    if (!resp.ok) throw new Error(`Worker responded ${resp.status}`);
+    const { iceServers } = await resp.json();
+    if (!Array.isArray(iceServers) || iceServers.length === 0) throw new Error('Empty iceServers');
+    return [{ urls: 'stun:stun.l.google.com:19302' }, ...iceServers];
+  } catch {
+    return FALLBACK_ICE_SERVERS;
+  }
+}

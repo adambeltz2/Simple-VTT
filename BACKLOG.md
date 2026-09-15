@@ -24,12 +24,12 @@ scheduled — pull items up as needed. Shipped work moves to
       untested at scale).
 - [ ] Persist scene image blobs via IndexedDB so a GM resume restores map
       art, not just scene metadata (session resume itself shipped in v0.2.0).
-- [ ] Evaluate a dedicated (likely paid) TURN provider if Open Relay
-      Project's free relay proves unreliable under real use — a second
-      connection failure was reported even with the TURN fallback in place
-      (v0.2.0). The connection log (v0.4.0) should make it possible to tell
-      whether the relay itself is unreachable/rate-limited vs. the whole
-      network blocking WebRTC outright before spending on this.
+- [ ] Deploy `cloudflare-turn-worker/` to a live Cloudflare account and set
+      `VITE_TURN_WORKER_URL` in production. The worker code and client-side
+      wiring (`fetchIceServers()` in `protocol.js`, with Open Relay as
+      automatic fallback) are in place; what's left is the one-time
+      Cloudflare-side setup in `cloudflare-turn-worker/README.md` (create
+      the TURN app, set the `TURN_KEY_ID`/`TURN_API_TOKEN` secrets, deploy).
 
 ## Medium-term
 - [ ] Measurement/ruler tool snapped to grid size.

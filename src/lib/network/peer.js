@@ -1,6 +1,6 @@
 import { Peer } from 'peerjs';
 import { get } from 'svelte/store';
-import { MSG, ICE_SERVERS } from './protocol.js';
+import { MSG, fetchIceServers } from './protocol.js';
 import { chunkBlob, receiveChunk } from './imageTransfer.js';
 import { gameState, role, connectionStatus, statusMessage, peerCount, sceneImageUrls } from '../state.js';
 import { logEvent } from '../diagnostics.js';
@@ -122,12 +122,15 @@ async function sendSceneImage(sceneId, conn) {
  * Pass an explicit code to re-host an existing session (e.g. resuming after
  * a refresh) instead of generating a fresh one.
  */
-export function hostSession(explicitCode) {
+export async function hostSession(explicitCode) {
+  const code = explicitCode || generateSessionCode();
+  connectionStatus.set('connecting');
+  logEvent('info', `Hosting session ${code}: fetching ICE servers…`);
+  const iceServers = await fetchIceServers();
+  logEvent('info', `Hosting session ${code} (${iceServers.length} ICE server(s))…`);
+
   return new Promise((resolve, reject) => {
-    const code = explicitCode || generateSessionCode();
-    connectionStatus.set('connecting');
-    logEvent('info', `Hosting session ${code} (ICE: STUN + Open Relay TURN)…`);
-    peer = new Peer(code, { debug: 0, config: { iceServers: ICE_SERVERS } });
+    peer = new Peer(code, { debug: 0, config: { iceServers } });
 
     peer.on('open', (id) => {
       logEvent('info', `Host peer opened as ${id}`);
@@ -180,12 +183,15 @@ export function hostSession(explicitCode) {
 }
 
 /** Join an existing session as a read-only player. */
-export function joinSession(code) {
+export async function joinSession(code) {
+  const upperCode = code.toUpperCase();
+  connectionStatus.set('connecting');
+  logEvent('info', `Joining session ${upperCode}: fetching ICE servers…`);
+  const iceServers = await fetchIceServers();
+  logEvent('info', `Joining session ${upperCode} (${iceServers.length} ICE server(s))…`);
+
   return new Promise((resolve, reject) => {
-    const upperCode = code.toUpperCase();
-    connectionStatus.set('connecting');
-    logEvent('info', `Joining session ${upperCode} (ICE: STUN + Open Relay TURN)…`);
-    peer = new Peer({ debug: 0, config: { iceServers: ICE_SERVERS } });
+    peer = new Peer({ debug: 0, config: { iceServers } });
 
     peer.on('open', (id) => {
       logEvent('info', `Player peer opened as ${id}, connecting to ${upperCode}…`);
