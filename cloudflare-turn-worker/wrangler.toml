@@ -10,4 +10,4 @@ ALLOWED_ORIGIN = "https://adambeltz2.github.io"
 
 # Secrets (never commit these) — set with:
 #   wrangler secret put TURN_KEY_ID
-#   wrangler secret put TURN_API_TOKEN
+#   wrangler secret put TURN_KEY_API_TOKEN

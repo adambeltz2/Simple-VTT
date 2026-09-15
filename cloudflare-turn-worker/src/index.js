@@ -10,8 +10,8 @@
  * https://developers.cloudflare.com/realtime/turn/generate-credentials/
  *
  * Required secrets (set via `wrangler secret put <name>`):
- *   - TURN_KEY_ID   — the Turn Key ID from the Cloudflare dashboard.
- *   - TURN_API_TOKEN — an API token scoped to Realtime TURN Token Edit.
+ *   - TURN_KEY_ID       — the Turn Key ID from the Cloudflare dashboard.
+ *   - TURN_KEY_API_TOKEN — an API token scoped to Realtime TURN Token Edit.
  *
  * Required var (in wrangler.toml [vars] or dashboard):
  *   - ALLOWED_ORIGIN — the deployed frontend origin, for CORS.
@@ -37,7 +37,7 @@ export default {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${env.TURN_API_TOKEN}`,
+            Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ ttl: CREDENTIAL_TTL_SECONDS })

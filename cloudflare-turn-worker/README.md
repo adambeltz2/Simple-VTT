@@ -21,7 +21,7 @@ It holds no game state and does nothing else.
 4. Set the secrets (never commit these):
    ```sh
    npx wrangler secret put TURN_KEY_ID
-   npx wrangler secret put TURN_API_TOKEN
+   npx wrangler secret put TURN_KEY_API_TOKEN
    ```
 5. Deploy:
    ```sh
