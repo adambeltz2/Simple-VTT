@@ -23,12 +23,15 @@ It holds no game state and does nothing else.
    npx wrangler secret put TURN_KEY_ID
    npx wrangler secret put TURN_API_TOKEN
    ```
-5. Edit `wrangler.toml`'s `ALLOWED_ORIGIN` to the deployed frontend's origin
-   (e.g. `https://<user>.github.io`), then deploy:
+5. Deploy:
    ```sh
    npm run deploy
    ```
-   Wrangler prints the Worker's URL (`https://simple-vtt-turn.<subdomain>.workers.dev`).
+   Wrangler prints the Worker's URL
+   (`https://simple-vtt-turn-credentials.<your-account-subdomain>.workers.dev`).
+   This name matches an existing Worker if one was already created by hand in
+   the dashboard — deploying overwrites its code in place and keeps the same
+   URL, rather than creating a duplicate.
 6. Point the frontend at it: set `VITE_TURN_WORKER_URL` to that URL, either
    in a local `.env` (see `.env.example` at the repo root) or as a repository
    variable (`vars.VITE_TURN_WORKER_URL`) so `.github/workflows/deploy.yml`

@@ -1,11 +1,12 @@
-name = "simple-vtt-turn"
+name = "simple-vtt-turn-credentials"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
-# Set to the deployed frontend's origin, e.g. "https://<user>.github.io".
-# Local dev against `npm run dev` should use "http://localhost:5173".
+# The Origin header a browser sends has no path, so this must be the bare
+# origin (no trailing /Simple-VTT/) even though the app is served from a
+# subpath. Override to "http://localhost:5173" for local `wrangler dev`.
 [vars]
-ALLOWED_ORIGIN = "http://localhost:5173"
+ALLOWED_ORIGIN = "https://adambeltz2.github.io"
 
 # Secrets (never commit these) — set with:
 #   wrangler secret put TURN_KEY_ID
